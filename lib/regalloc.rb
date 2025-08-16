@@ -80,6 +80,16 @@ module Regalloc
       @range = nil
     end
 
+    def begin
+      raise unless @range
+      @range.begin
+    end
+
+    def end
+      raise unless @range
+      @range.end
+    end
+
     def survives?(x)
       raise unless @range
       range.begin < x && range.end > x
@@ -177,13 +187,13 @@ module Regalloc
       assignment = {}  # Map from Interval to PReg|StackSlot
       num_stack_slots = 0
       # Iterate through intervals in order of increasing start point
-      intervals.sort_by { |_, interval| interval.range.begin }.each do |_vreg, interval|
+      intervals.sort_by { |_, interval| interval.begin }.each do |_vreg, interval|
         # TODO(max): We can probably do this slightly faster by starting at the
         # current interval's start point index in active and walking backwards?
         # Maybe?
         # expire_old_intervals(interval)
         active.select! do |active_interval|
-          if active_interval.range.end > interval.range.begin
+          if active_interval.end > interval.begin
             true
           else
             operand = assignment.fetch(active_interval)
@@ -203,7 +213,7 @@ module Regalloc
           # TODO(max): Insert a spill instruction at an odd index
           slot = StackSlot.new(num_stack_slots)
           num_stack_slots += 1
-          if spill.range.end > interval.range.end
+          if spill.end > interval.end
             # The last active interval ends further away than the current
             # interval; spill the last active interval.
             assignment[interval] = assignment[spill]
@@ -211,7 +221,7 @@ module Regalloc
             assignment[spill] = slot
             active.pop  # We know spill is the last one
             # Insert interval into already-sorted active
-            insert_idx = active.bsearch_index { |i| i.range.end >= interval.range.end } || active.length
+            insert_idx = active.bsearch_index { |i| i.end >= interval.end } || active.length
             active.insert(insert_idx, interval)
           else
             # The current interval ends further away than the last active
@@ -224,7 +234,7 @@ module Regalloc
           free_registers.delete(reg)
           assignment[interval] = PReg.new(reg)
           # Insert interval into already-sorted active
-          insert_idx = active.bsearch_index { |i| i.range.end >= interval.range.end } || active.length
+          insert_idx = active.bsearch_index { |i| i.end >= interval.end } || active.length
           active.insert(insert_idx, interval)
         end
       end
