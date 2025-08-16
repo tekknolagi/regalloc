@@ -139,7 +139,7 @@ module Regalloc
 
     def build_intervals live_in
       intervals = Hash.new { |hash, key| hash[key] = Interval.new }
-      @block_order.each do |block|
+      @block_order.reverse_each do |block|
         # live = union of successor.liveIn for each successor of b
         live = block.successors.map { |succ| live_in[succ] }.reduce(0, :|)
         # for each phi function phi of successors of b do
