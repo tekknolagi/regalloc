@@ -175,12 +175,12 @@ Function:
     live_in = func.analyze_liveness
     func.number_instructions!
     intervals = func.build_intervals live_in
-    assert_equal 16..36, intervals[@r10].range
-    assert_equal 16..20, intervals[@r11].range
-    assert_equal 20..36, intervals[@r12].range
-    assert_equal 20..30, intervals[@r13].range
-    assert_equal 28..34, intervals[@r14].range
-    assert_equal 30..34, intervals[@r15].range
+    assert_equal [16..36], intervals[@r10].ranges
+    assert_equal [16..20], intervals[@r11].ranges
+    assert_equal [20..28, 34..36], intervals[@r12].ranges
+    assert_equal [20..30], intervals[@r13].ranges
+    assert_equal [28..34], intervals[@r14].ranges
+    assert_equal [30..34], intervals[@r15].ranges
   end
 
   def test_linear_scan_no_spill

@@ -74,47 +74,78 @@ module Regalloc
   end
 
   class Interval
-    attr_reader :range
+    attr_reader :ranges
 
     def initialize
-      @range = nil
+      @ranges = []
     end
 
     def begin
-      raise unless @range
-      @range.begin
+      raise if @ranges.empty?
+      @ranges.first.begin
     end
 
     def end
-      raise unless @range
-      @range.end
+      raise if @ranges.empty?
+      @ranges.last.end
     end
 
     def survives?(x)
-      raise unless @range
-      range.begin < x && range.end > x
+      raise if @ranges.empty?
+      # TODO(max): Check for holes?
+      self.begin < x && self.end > x
+    end
+
+    def assert_invariants
+      # Assert that they're sorted by begin
+      sorted = @ranges.sort_by(&:begin)
+      if sorted != @ranges
+        raise "Ranges are not sorted: #{@ranges.inspect} != #{sorted.inspect}"
+      end
+      # Assert that the ranges are disjoint
+      @ranges.each_cons(2) do |a, b|
+        if a.end >= b.begin
+          raise "Ranges overlap: #{a.inspect} and #{b.inspect}"
+        end
+      end
     end
 
     def add_range(from, to)
       if to <= from
         raise ArgumentError, "Invalid range: #{from} to #{to}"
       end
-      if !@range
-        @range = Range.new(from, to)
+      if @ranges.empty?
+        @ranges << Range.new(from, to)
         return
       end
-      @range = Range.new([@range.begin, from].min, [@range.end, to].max)
+      if @ranges.first.cover?(from..to)
+        assert_invariants
+        return
+      end
+      if @ranges.first.cover?(to)
+        @ranges[0] = Range.new(from, @ranges.first.end)
+        assert_invariants
+        return
+      end
+      # TODO(max): Use a linked list or deque or something to avoid O(n) insertions
+      @ranges.insert(0, Range.new(from, to))
+      assert_invariants
     end
 
     def set_from(from)
-      # @range is nil when we don't have a use of the vreg
-      @range = Range.new(from, @range&.end || from)
+      if @ranges.empty?
+        # @ranges is empty when we don't have a use of the vreg
+        @ranges << Range.new(from, from)
+      else
+        @ranges[0] = Range.new(from, @ranges[0].end)
+      end
+      assert_invariants
     end
 
-    def inspect = "Range(#{@range&.begin}, #{@range&.end})"
+    def inspect = "Range(#{@ranges.inspect})"
 
     def ==(other)
-      other.is_a?(Interval) && @range == other.range
+      other.is_a?(Interval) && @ranges == other.ranges
     end
   end
 
