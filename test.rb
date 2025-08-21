@@ -171,6 +171,61 @@ Function:
     assert_equal nums, nums.uniq
   end
 
+  def test_lifetime_holes
+    func = Regalloc::Function::new
+    func.next_vreg_name = 0
+    func.insn_start_number = 0
+    b1 = func.new_block
+    b2 = func.new_block
+    b3 = func.new_block
+    b4 = func.new_block
+    a = nil
+    b = nil
+    b1.define do
+      a = loadi imm(123)
+      blt iftrue: edge(b3, []), iffalse: edge(b2, [])
+    end
+    b2.define do
+      b = loadi imm(456)
+      c = add b, imm(1)
+      jump edge(b4, [])
+    end
+    b3.define do
+      d = mul a, imm(2)
+      jump edge(b4, [])
+    end
+    b4.define do
+      ret imm(5)
+    end
+    func.entry_block = b1
+    func
+    live_in = func.analyze_liveness
+    assert_equal bitset_to_names(live_in[b1], func), []
+    assert_equal bitset_to_names(live_in[b2], func), []
+    assert_equal bitset_to_names(live_in[b3], func), [a]
+    assert_equal bitset_to_names(live_in[b4], func), []
+    func.number_instructions!
+    assert_equal <<-output, func.pretty_inspect
+Function:
+    0: B1:
+    2: R0 = loadi $123
+    4: blt iftrue: →B3, iffalse: →B2
+    6: B2:
+    8: R1 = loadi $456
+    10: R2 = add R1, $1
+    12: jump →B4
+    14: B3:
+    16: R3 = mul R0, $2
+    18: jump →B4
+    20: B4:
+    22: ret $5
+
+    output
+    intervals = func.build_intervals live_in
+    assert_equal [2..6, 14..16], intervals[a].ranges
+    assert_equal [8..10], intervals[b].ranges
+  end
+
   def test_build_live_intervals
     live_in = func.analyze_liveness
     func.number_instructions!
