@@ -477,9 +477,8 @@ module Regalloc
         result << <<~END
           </TABLE>>];
         END
-        last_index = block.instructions.length - 1
         block.successors.each do |succ|
-          result << "#{block.name}:#{last_index} -> #{succ.name}:params;\n"
+          result << "#{block.name}:s -> #{succ.name}:params:n;\n"
         end
       end
       result << "}"
