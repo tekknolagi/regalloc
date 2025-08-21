@@ -437,7 +437,6 @@ module Regalloc
           pp.text "    "
           pp.text "#{block.number}: "
         end
-        pp.breakable if i > 0
         pp.text "#{block.name}:"
         if block.parameters.any?
           pp.text " (#{block.parameters.map(&:inspect).join(", ")})"
