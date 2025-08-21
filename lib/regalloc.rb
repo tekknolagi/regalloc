@@ -461,7 +461,7 @@ module Regalloc
         END
         params = block.parameters.map(&:inspect).join(", ")
         result << <<~END
-          <TR><TD PORT="params" BGCOLOR="gray">#{block.name}(#{params})&nbsp;</TD></TR>
+          <TR><TD PORT="params" BGCOLOR="lightgray">#{block.name}(#{params})&nbsp;</TD></TR>
         END
         block.instructions.each_with_index do |insn, idx|
           out = if insn.out
